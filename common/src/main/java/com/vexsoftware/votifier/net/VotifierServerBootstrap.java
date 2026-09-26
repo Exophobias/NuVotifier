@@ -33,6 +33,7 @@ import java.util.function.Consumer;
 
 public class VotifierServerBootstrap {
     private static final boolean USE_EPOLL = Epoll.isAvailable();
+    private static final long SHUTDOWN_TIMEOUT_SECONDS = 15;
 
     private final String host;
     private final int port;
@@ -121,8 +122,10 @@ public class VotifierServerBootstrap {
                 plugin.getPluginLogger().error("Unable to shutdown server channel", e);
             }
         }
-        eventLoopGroup.shutdownGracefully();
-        bossLoopGroup.shutdownGracefully();
+        // The listener is closed above. Do not hold the Bukkit main thread for
+        // Netty's default two-second quiet period on every /nvreload.
+        eventLoopGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        bossLoopGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
         try {
             bossLoopGroup.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);

@@ -48,13 +48,10 @@ dependencies {
     implementation project(":nuvotifier-api")
     implementation project(":nuvotifier-common")
     implementation project(":nuvotifier-bukkit")
-    implementation project(":nuvotifier-bungeecord")
-    implementation project(":nuvotifier-sponge")
-    implementation project(":nuvotifier-velocity")
 }
 
 shadowJar {
-    archiveBaseName = 'nuvotifier'
+    archiveBaseName = 'nuvotifier-bukkit'
     relocate "io.netty", "com.vexsoftware.votifier.io.netty"
     relocate "org.json", "com.vexsoftware.votifier.json"
     relocate new SimpleRelocator("com.google.code", "com.vexsoftware.votifier.google.code", new ArrayList<String>(), Collections.singletonList("com.vexsoftware.votifier.sponge"))
@@ -72,7 +69,7 @@ artifacts {
     }
 }
 
-def artifactPattern = Pattern.compile(/(.*)-([0-9]+\.)*[0-9]+(-SNAPSHOT)?-all\.jar/)
+def artifactPattern = Pattern.compile(/(.*)-([0-9]+\.)*[0-9]+(-patriam\.[0-9]+|-SNAPSHOT)?-all\.jar/)
 
 task('linkLatest') {
     dependsOn tasks.shadowJar

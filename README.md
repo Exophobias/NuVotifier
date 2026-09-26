@@ -4,12 +4,12 @@ NuVotifier is a secure alternative to using the original Votifier project.
 NuVotifier will work in place of Votifier - any vote listener that supports
 Votifier will also support NuVotifier.
 
-NuVotifier supports many different platforms using the same universal JAR:
-
-+ Bukkit / Spigot / Paper >=1.7.10
-+ Sponge 7
-+ BungeeCord / Waterfall
-+ Velocity
+This Patriam 2.7.3 maintenance branch packages a Bukkit/Paper-only JAR. Build it
+with JDK 17 and `./gradlew clean build`; the release artifact is
+`universal/build/libs/nuvotifier-bukkit-2.7.3-patriam.1-all.jar`. Upstream's
+other platform sources remain in the repository but are not part of this build.
+The listener closes and its Netty threads still terminate before a reload
+rebinds the port, without Netty's default two-second shutdown quiet period.
 
 NuVotifier also adds forwarding and listener test commands not present in the
 original version.
