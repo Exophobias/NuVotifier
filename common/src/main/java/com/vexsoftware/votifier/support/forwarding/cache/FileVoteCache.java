@@ -15,7 +15,7 @@ import java.nio.file.NoSuchFileException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-public class FileVoteCache extends MemoryVoteCache {
+public final class FileVoteCache extends MemoryVoteCache {
 
     private final LoggingAdapter l;
     private final File cacheFile;

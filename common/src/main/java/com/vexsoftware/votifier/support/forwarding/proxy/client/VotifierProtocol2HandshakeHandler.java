@@ -12,7 +12,8 @@ public class VotifierProtocol2HandshakeHandler extends SimpleChannelInboundHandl
     private final VotifierPlugin nuVotifier;
 
     public VotifierProtocol2HandshakeHandler(Vote toSend, VotifierResponseHandler responseHandler, VotifierPlugin nuVotifier) {
-        this.toSend = toSend;
+        // A handshake is asynchronous; later event-listener mutations must not change its vote.
+        this.toSend = new Vote(toSend);
         this.responseHandler = responseHandler;
         this.nuVotifier = nuVotifier;
     }

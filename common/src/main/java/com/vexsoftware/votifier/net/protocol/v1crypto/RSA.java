@@ -39,7 +39,7 @@ public class RSA {
      * @throws Exception If an error occurs
      */
     public static byte[] encrypt(byte[] data, PublicKey key) throws Exception {
-        Cipher cipher = Cipher.getInstance("RSA");
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         cipher.init(Cipher.ENCRYPT_MODE, key);
         return cipher.doFinal(data);
     }
@@ -53,7 +53,7 @@ public class RSA {
      * @throws Exception If an error occurs
      */
     public static byte[] decrypt(byte[] data, PrivateKey key) throws Exception {
-        Cipher cipher = Cipher.getInstance("RSA");
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         cipher.init(Cipher.DECRYPT_MODE, key);
         return cipher.doFinal(data);
     }

@@ -35,7 +35,7 @@ public class ProxyForwardingVoteSource implements ForwardingVoteSource {
     public ProxyForwardingVoteSource(VotifierPlugin plugin, Supplier<Bootstrap> nettyBootstrap, List<BackendServer> backendServers, VoteCache voteCache) {
         this.plugin = plugin;
         this.nettyBootstrap = nettyBootstrap;
-        this.backendServers = backendServers;
+        this.backendServers = List.copyOf(backendServers);
         this.voteCache = voteCache;
     }
 

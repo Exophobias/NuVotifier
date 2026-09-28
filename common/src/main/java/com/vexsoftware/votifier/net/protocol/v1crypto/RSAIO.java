@@ -19,6 +19,7 @@
 package com.vexsoftware.votifier.net.protocol.v1crypto;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Base64;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -35,6 +36,7 @@ import java.security.spec.X509EncodedKeySpec;
  * Static utility methods for saving and loading RSA key pairs.
  */
 public class RSAIO {
+    private static final int MAXIMUM_KEY_FILE_BYTES = 16 * 1024;
 
     /**
      * Saves the key pair to the disk.
@@ -62,14 +64,19 @@ public class RSAIO {
 
     public static byte[] readB64File(File directory, String name) throws IOException {
         File f = new File(directory, name);
-        byte[] contents = Files.readAllBytes(f.toPath());
+        byte[] contents;
+        try (InputStream input = Files.newInputStream(f.toPath())) {
+            contents = input.readNBytes(MAXIMUM_KEY_FILE_BYTES + 1);
+        }
+        if (contents.length > MAXIMUM_KEY_FILE_BYTES) {
+            throw new IOException("RSA key file exceeds the supported size limit");
+        }
         String strContents = new String(contents, StandardCharsets.US_ASCII);
         strContents = strContents.trim();
         try {
             return Base64.getDecoder().decode(strContents);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Base64 decoding exception: This is probably due to a corrupted file, " +
-                    "but in case it isn't, here is a b64 representation of what we read: " + new String(Base64.getEncoder().encode(contents), StandardCharsets.UTF_8), e);
+            throw new IllegalArgumentException("RSA key file contains invalid Base64", e);
         }
     }
 

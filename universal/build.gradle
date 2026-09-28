@@ -1,90 +1,61 @@
 import com.github.jengelman.gradle.plugins.shadow.relocation.SimpleRelocator
-
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.nio.file.StandardCopyOption
-import java.util.regex.Pattern
-import com.github.jengelman.gradle.plugins.shadow.transformers.Transformer
+import com.github.jengelman.gradle.plugins.shadow.transformers.ResourceTransformer
 import com.github.jengelman.gradle.plugins.shadow.transformers.TransformerContext
-import shadow.org.apache.tools.zip.ZipEntry
-import shadow.org.apache.tools.zip.ZipOutputStream
+import org.apache.tools.zip.ZipEntry
+import org.apache.tools.zip.ZipOutputStream
 import org.gradle.api.file.FileTreeElement
 
-buildscript {
-    repositories {
-        gradlePluginPortal()
-    }
-    dependencies {
-        classpath 'gradle.plugin.com.github.jengelman.gradle.plugins:shadow:7.0.0'
-    }
+plugins {
+    id 'com.gradleup.shadow'
 }
 
-class NettyEpollTransformer implements Transformer {
-    private java.nio.file.Path extractedNettyNative
+class NettyEpollTransformer implements ResourceTransformer {
+    private byte[] nativeLibrary
 
     boolean canTransformResource(FileTreeElement element) {
-        return element.name.endsWith("libnetty_transport_native_epoll_x86_64.so")
+        return element.name.endsWith('libnetty_transport_native_epoll_x86_64.so')
     }
 
     void transform(TransformerContext context) {
-        this.extractedNettyNative = Files.createTempFile("nuvotifer_build", ".so")
-        Files.copy(context.is, this.extractedNettyNative, StandardCopyOption.REPLACE_EXISTING)
+        nativeLibrary = context.inputStream.bytes
     }
 
-    boolean hasTransformedResource() { this.extractedNettyNative != null }
+    boolean hasTransformedResource() { nativeLibrary != null }
 
-    void modifyOutputStream(ZipOutputStream jos, boolean preserveFileTimestamps) {
-        ZipEntry entry = new ZipEntry("META-INF/native/libcom_vexsoftware_votifier_netty_transport_native_epoll_x86_64.so")
-        entry.time = TransformerContext.getEntryTimestamp(preserveFileTimestamps, entry.time)
-        jos.putNextEntry(entry)
-        Files.copy(this.extractedNettyNative, jos)
-        Files.delete(this.extractedNettyNative)
+    void modifyOutputStream(ZipOutputStream output, boolean preserveFileTimestamps) {
+        ZipEntry entry = new ZipEntry('META-INF/native/libcom_vexsoftware_votifier_netty_transport_native_epoll_x86_64.so')
+        // ZIP stores local DOS time. Match Gradle's reproducible date in every build timezone.
+        entry.time = java.time.LocalDateTime.of(1980, 2, 1, 0, 0)
+                .atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        output.putNextEntry(entry)
+        output.write(nativeLibrary)
+        output.closeEntry()
     }
 }
-
-apply plugin: 'com.github.johnrengelman.shadow'
 
 dependencies {
-    implementation project(":nuvotifier-api")
-    implementation project(":nuvotifier-common")
-    implementation project(":nuvotifier-bukkit")
+    implementation project(':nuvotifier-api')
+    implementation project(':nuvotifier-common')
+    implementation project(':nuvotifier-bukkit')
 }
 
-shadowJar {
+def shadedJar = tasks.named('shadowJar') {
     archiveBaseName = 'nuvotifier-bukkit'
-    relocate "io.netty", "com.vexsoftware.votifier.io.netty"
-    relocate "org.json", "com.vexsoftware.votifier.json"
-    relocate new SimpleRelocator("com.google.code", "com.vexsoftware.votifier.google.code", new ArrayList<String>(), Collections.singletonList("com.vexsoftware.votifier.sponge"))
-    relocate "com.google.gson", "com.vexsoftware.votifier.google.gson"
-    relocate "org.apache.commons.io", "com.vexsoftware.votifier.commons.io"
+    relocate 'io.netty', 'com.vexsoftware.votifier.io.netty'
+    relocate 'org.json', 'com.vexsoftware.votifier.json'
+    relocate new SimpleRelocator('com.google.code', 'com.vexsoftware.votifier.google.code', [], ['com.vexsoftware.votifier.sponge'])
+    relocate 'com.google.gson', 'com.vexsoftware.votifier.google.gson'
+    relocate 'org.apache.commons.io', 'com.vexsoftware.votifier.commons.io'
 
     transform(NettyEpollTransformer.class)
 }
 
-artifacts {
-    tasks.shadowJar.outputs.files.each {
-        archives(it) {
-            builtBy shadowJar
-        }
-    }
+tasks.register('linkLatest', Copy) {
+    from(shadedJar.flatMap { it.archiveFile })
+    into(layout.buildDirectory.dir('libs'))
+    rename { 'nuvotifier-bukkit.jar' }
 }
 
-def artifactPattern = Pattern.compile(/(.*)-([0-9]+\.)*[0-9]+(-patriam\.[0-9]+|-SNAPSHOT)?-all\.jar/)
-
-task('linkLatest') {
-    dependsOn tasks.shadowJar
-    doLast {
-        tasks.shadowJar.outputs.files.each {
-            System.println(it.absolutePath)
-            def noVerMatcher = artifactPattern.matcher(it.absolutePath)
-            if (!noVerMatcher.matches())
-                throw new IllegalStateException("path does not match")
-
-            def noVer = Paths.get(noVerMatcher.group(1) + ".jar")
-            def versnd = it.toPath()
-            Files.copy(versnd, noVer, StandardCopyOption.REPLACE_EXISTING)
-        }
-    }
+tasks.named('build') {
+    dependsOn tasks.named('linkLatest')
 }
-
-build.dependsOn linkLatest

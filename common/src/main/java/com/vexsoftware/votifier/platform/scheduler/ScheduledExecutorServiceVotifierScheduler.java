@@ -5,7 +5,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class ScheduledExecutorServiceVotifierScheduler implements VotifierScheduler {
+public final class ScheduledExecutorServiceVotifierScheduler implements VotifierScheduler {
     private final ScheduledExecutorService service;
 
     public ScheduledExecutorServiceVotifierScheduler(ScheduledExecutorService service) {

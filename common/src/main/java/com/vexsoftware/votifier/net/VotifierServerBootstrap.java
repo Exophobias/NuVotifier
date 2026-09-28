@@ -21,7 +21,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.concurrent.FastThreadLocalThread;
-import io.netty.util.concurrent.GlobalEventExecutor;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -34,6 +33,9 @@ import java.util.function.Consumer;
 public class VotifierServerBootstrap {
     private static final boolean USE_EPOLL = Epoll.isAvailable();
     private static final long SHUTDOWN_TIMEOUT_SECONDS = 15;
+    private static final int MAXIMUM_CONNECTIONS = 128;
+    private static final int MAXIMUM_CONNECTIONS_PER_ADDRESS = 16;
+    private static final long CONNECTION_LIFETIME_MILLIS = 10_000;
 
     private final String host;
     private final int port;
@@ -41,6 +43,8 @@ public class VotifierServerBootstrap {
     private final EventLoopGroup eventLoopGroup;
     private final VotifierPlugin plugin;
     private final boolean v1Disable;
+    private final VotifierConnectionManager connections = new VotifierConnectionManager(
+            MAXIMUM_CONNECTIONS, MAXIMUM_CONNECTIONS_PER_ADDRESS, CONNECTION_LIFETIME_MILLIS);
 
     private Channel serverChannel;
 
@@ -79,6 +83,9 @@ public class VotifierServerBootstrap {
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel channel) {
+                        if (!connections.register(channel)) {
+                            return;
+                        }
                         channel.attr(VotifierSession.KEY).set(new VotifierSession());
                         channel.attr(VotifierPlugin.KEY).set(plugin);
                         channel.pipeline().addLast("greetingHandler", VotifierGreetingHandler.INSTANCE);
@@ -122,6 +129,7 @@ public class VotifierServerBootstrap {
                 plugin.getPluginLogger().error("Unable to shutdown server channel", e);
             }
         }
+        connections.close().awaitUninterruptibly();
         // The listener is closed above. Do not hold the Bukkit main thread for
         // Netty's default two-second quiet period on every /nvreload.
         eventLoopGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);

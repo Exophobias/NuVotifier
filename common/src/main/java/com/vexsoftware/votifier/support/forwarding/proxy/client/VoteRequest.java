@@ -2,13 +2,14 @@ package com.vexsoftware.votifier.support.forwarding.proxy.client;
 
 import com.vexsoftware.votifier.model.Vote;
 
-public class VoteRequest {
+/** A snapshot of a vote for one authenticated forwarding exchange. */
+public final class VoteRequest {
     private final String challenge;
     private final Vote vote;
 
     public VoteRequest(String challenge, Vote vote) {
         this.challenge = challenge;
-        this.vote = vote;
+        this.vote = new Vote(vote);
     }
 
     public String getChallenge() {
@@ -16,7 +17,7 @@ public class VoteRequest {
     }
 
     public Vote getVote() {
-        return vote;
+        return new Vote(vote);
     }
 
     @Override

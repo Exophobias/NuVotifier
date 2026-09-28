@@ -6,7 +6,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 
 import java.nio.charset.StandardCharsets;
@@ -33,11 +32,11 @@ public class VotifierProtocolDifferentiator extends ByteToMessageDecoder {
         int readable = buf.readableBytes();
 
         if (readable < 2) {
-            // Some retarded voting sites (PMC?) seem to send empty buffers for no good reason.
+            // Wait for a fragmented protocol header; the connection has an absolute deadline.
             return;
         }
 
-        short readMagic = buf.getShort(0);
+        short readMagic = buf.getShort(buf.readerIndex());
         VotifierSession session = ctx.channel().attr(VotifierSession.KEY).get();
 
         if (readMagic == PROTOCOL_2_MAGIC) {
@@ -45,8 +44,8 @@ public class VotifierProtocolDifferentiator extends ByteToMessageDecoder {
             session.setVersion(VotifierSession.ProtocolVersion.TWO);
 
             if (!testMode) {
-                ctx.pipeline().addAfter("protocolDifferentiator", "protocol2LengthDecoder", new LengthFieldBasedFrameDecoder(1024, 2, 2, 0, 4));
-                ctx.pipeline().addAfter("protocol2LengthDecoder", "protocol2StringDecoder", new StringDecoder(StandardCharsets.UTF_8));
+                ctx.pipeline().addAfter("protocolDifferentiator", "protocol2LengthDecoder", new LengthFieldBasedFrameDecoder(VotifierProtocol2Decoder.MAX_FRAME_BYTES, 2, 2, 0, 4));
+                ctx.pipeline().addAfter("protocol2LengthDecoder", "protocol2StringDecoder", new VotifierProtocol2Utf8Decoder());
                 ctx.pipeline().addAfter("protocol2StringDecoder", "protocol2VoteDecoder", new VotifierProtocol2Decoder());
                 ctx.pipeline().addAfter("protocol2VoteDecoder", "protocol2StringEncoder", new StringEncoder(StandardCharsets.UTF_8));
                 ctx.pipeline().remove(this);

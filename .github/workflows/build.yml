@@ -1,0 +1,42 @@
+name: Paper 26.3 / Java 25
+
+on:
+  push:
+    branches: ['patriam/26.3']
+  pull_request:
+    branches: ['patriam/26.3']
+
+permissions:
+  contents: read
+
+# Latest stable releases and their tag-to-commit references verified on 2026-09-27:
+# https://api.github.com/repos/actions/{action}/releases/latest
+# https://api.github.com/repos/actions/{action}/git/ref/tags/{version}
+# All pinned commits were reported as signature-verified by the official GitHub API.
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Verify wrapper, test and package
+        run: |
+          echo "238e777fcddd7e34f9708186085def2abd6e08e658505b38718d79d74c21abd5  gradle/wrapper/gradle-wrapper.jar" | sha256sum --check --strict
+          ./gradlew --no-daemon --dependency-verification strict clean verifyRelease
+      - name: Upload jar and test reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nuvotifier-java25
+          path: |
+            universal/build/libs/*.jar
+            **/build/test-results/test/*.xml
+            **/build/reports/tests/test/**
+          if-no-files-found: warn
+          retention-days: 7

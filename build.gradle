@@ -2,42 +2,52 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
 plugins {
-    id "com.github.spotbugs" version "4.7.1" apply false
-    id "net.kyori.blossom" version "1.3.0" apply false
+    id "com.github.spotbugs" version "6.5.12" apply false
+    id "com.gradleup.shadow" version "9.6.1" apply false
 }
 
 allprojects {
-    group 'com.vexsoftware'
-    version '2.7.3-patriam.1'
+    group = 'com.vexsoftware'
+    version = '2.7.3-patriam.2'
+
+    dependencyLocking {
+        lockAllConfigurations()
+    }
 }
 
 subprojects {
     apply plugin: 'java'
     apply plugin: "com.github.spotbugs"
 
-    sourceCompatibility = 1.8
+    java {
+        toolchain.languageVersion = JavaLanguageVersion.of(25)
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.release = 25
+        options.encoding = 'UTF-8'
+    }
+
+    tasks.withType(AbstractArchiveTask).configureEach {
+        preserveFileTimestamps = false
+        reproducibleFileOrder = true
+    }
 
     repositories {
         mavenCentral()
-        maven {
-            url "https://hub.spigotmc.org/nexus/content/repositories/snapshots"
-        }
-        maven {
-            url "https://oss.sonatype.org/content/repositories/snapshots"
-        }
-        maven {
-            url "https://repo.spongepowered.org/maven"
-        }
-        maven {
-            url "https://repo.velocitypowered.com/snapshots/"
-        }
+        maven { url = "https://repo.papermc.io/repository/maven-public/" }
+    }
+
+    configurations {
+        mockitoAgent { transitive = false }
     }
 
     dependencies {
-        testImplementation "org.junit.jupiter:junit-jupiter-api:5.4.2"
-        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.4.2"
-        testImplementation "org.junit.jupiter:junit-jupiter-params:5.4.2"
-        testImplementation "org.mockito:mockito-core:2.+"
+        testImplementation platform("org.junit:junit-bom:6.1.3")
+        testImplementation "org.junit.jupiter:junit-jupiter"
+        testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+        testImplementation "org.mockito:mockito-core:5.24.0"
+        mockitoAgent "org.mockito:mockito-core:5.24.0"
     }
 
     processResources {
@@ -46,15 +56,29 @@ subprojects {
 
     test {
         useJUnitPlatform()
+        jvmArgs "-javaagent:${configurations.mockitoAgent.asPath}"
     }
 
-    tasks.withType(com.github.spotbugs.snom.SpotBugsTask) {
+    tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+        def filterFile = project.file('spotbugs-exclude.xml')
+        if (filterFile.exists()) {
+            excludeFilter = filterFile
+        }
+        def reportFile = layout.buildDirectory.file("reports/spotbugs/${name}.html")
         reports {
-            html {
-                enabled = true
-                destination = file("$buildDir/reports/spotbugs/main/spotbugs.html")
+            create("html") {
+                required = true
+                outputLocation = reportFile
                 stylesheet = 'fancy-hist.xsl'
             }
         }
     }
+}
+
+tasks.register('verifyRelease') {
+    group = 'verification'
+    description = 'Test, statically analyze and package the Paper 26.3 release.'
+    dependsOn subprojects.collect { "${it.path}:test" }
+    dependsOn ':nuvotifier-api:spotbugsMain', ':nuvotifier-common:spotbugsMain', ':nuvotifier-bukkit:spotbugsMain'
+    dependsOn ':nuvotifier-universal:shadowJar', ':nuvotifier-bukkit:verifyPaperApi'
 }

@@ -1,37 +1,28 @@
+// Docker Official Image tag verified in docker-library/official-images on 2026-09-27.
 pipeline {
     agent {
-        docker { image 'openjdk:12-jdk' }
+        docker { image 'eclipse-temurin:25-jdk' }
+    }
+
+    options {
+        timeout(time: 20, unit: 'MINUTES')
+        disableConcurrentBuilds()
     }
 
     stages {
-        stage('Build') {
+        stage('Verify, test and package') {
             steps {
-                sh './gradlew build --no-daemon'            
+                // Official Gradle 9.8.0 wrapper checksum; distribution checksum is in its properties.
+                sh 'echo "238e777fcddd7e34f9708186085def2abd6e08e658505b38718d79d74c21abd5  gradle/wrapper/gradle-wrapper.jar" | sha256sum --check --strict'
+                sh './gradlew --no-daemon --dependency-verification strict clean verifyRelease'
             }
         }
-        
-        stage('Test') {
-            steps {
-                sh './gradlew test --no-daemon'            
-            }
-        }
-        
-        stage('Publish') {
-            when {
-                branch "master"
-            }
-            environment {
-                SNAPSHOT_REPO   = credentials('ibj-nexus-snapshot-repo')
-                RELEASE_REPO    = credentials('ibj-nexus-release-repo')
-                RAW_UPLOAD_PATH = credentials('ibj-nexus-raw-path')
-                REPO            = credentials('ibj-nexus-access')
-                PUBLISH = 'true'
-                LATEST_BUILD = 'true'
-            }
-            steps {
-                sh './gradlew publishVersionedPublicationToIbjRepository'
-                sh './gradlew publishLatestToIbjBlockRaw'
-            }
+    }
+
+    post {
+        always {
+            junit testResults: '**/build/test-results/test/*.xml', allowEmptyResults: true
+            archiveArtifacts artifacts: 'universal/build/libs/*.jar,**/build/reports/tests/test/**', allowEmptyArchive: true, fingerprint: true
         }
     }
 }

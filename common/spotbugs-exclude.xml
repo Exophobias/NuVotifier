@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- This adapter deliberately delegates to the host's Logger, including its handlers and
+         dynamic logging policy. A separate logger would break that integration. -->
+    <Match>
+        <Class name="com.vexsoftware.votifier.platform.JavaUtilLogger"/>
+        <Method name="&lt;init&gt;" params="java.util.logging.Logger" returns="void"/>
+        <Field name="logger" type="java.util.logging.Logger"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <!-- The injected VoteCache is shared persistent state owned by the platform. The forwarding
+         source must write to and stop this same cache, rather than a detached copy. -->
+    <Match>
+        <Class name="com.vexsoftware.votifier.support.forwarding.AbstractPluginMessagingForwardingSource"/>
+        <Method name="&lt;init&gt;" params="java.lang.String,com.vexsoftware.votifier.support.forwarding.ServerFilter,com.vexsoftware.votifier.platform.ProxyVotifierPlugin,com.vexsoftware.votifier.support.forwarding.cache.VoteCache,int" returns="void"/>
+        <Field name="cache" type="com.vexsoftware.votifier.support.forwarding.cache.VoteCache"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <!-- TCP forwarding failures must use the platform's existing cache; creating a copy would
+         detach retries from persistence and cache eviction. Null still disables caching. -->
+    <Match>
+        <Class name="com.vexsoftware.votifier.support.forwarding.proxy.ProxyForwardingVoteSource"/>
+        <Method name="&lt;init&gt;" params="com.vexsoftware.votifier.platform.VotifierPlugin,java.util.function.Supplier,java.util.List,com.vexsoftware.votifier.support.forwarding.cache.VoteCache" returns="void"/>
+        <Field name="voteCache" type="com.vexsoftware.votifier.support.forwarding.cache.VoteCache"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+</FindBugsFilter>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Command executors must retain the live plugin instance supplied by Bukkit. Copying a
+         JavaPlugin is invalid and would separate commands from their authorized runtime owner. -->
+    <Match>
+        <Class name="com.vexsoftware.votifier.cmd.NVReloadCmd"/>
+        <Method name="&lt;init&gt;" params="com.vexsoftware.votifier.NuVotifierBukkit" returns="void"/>
+        <Field name="plugin"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <Class name="com.vexsoftware.votifier.cmd.TestVoteCmd"/>
+        <Method name="&lt;init&gt;" params="com.vexsoftware.votifier.NuVotifierBukkit" returns="void"/>
+        <Field name="plugin"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <!-- The legacy sink retains Bukkit's owning Plugin by identity. Its final class rejects
+         construction before registration, so this reference cannot expose a live vote transport. -->
+    <Match>
+        <Class name="com.vexsoftware.votifier.forwarding.BukkitPluginMessagingForwardingSink"/>
+        <Method name="&lt;init&gt;" params="org.bukkit.plugin.Plugin,java.lang.String,com.vexsoftware.votifier.support.forwarding.ForwardedVoteListener" returns="void"/>
+        <Field name="p"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <!-- VotifierEvent intentionally exposes the upstream mutable Vote instance to trusted
+         synchronous Bukkit listeners. Preserve this existing public API and object identity. -->
+    <Match>
+        <Class name="com.vexsoftware.votifier.model.VotifierEvent"/>
+        <Method name="&lt;init&gt;" params="com.vexsoftware.votifier.model.Vote" returns="void"/>
+        <Field name="vote"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <Class name="com.vexsoftware.votifier.model.VotifierEvent"/>
+        <Method name="getVote" params="" returns="com.vexsoftware.votifier.model.Vote"/>
+        <Field name="vote"/>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+</FindBugsFilter>

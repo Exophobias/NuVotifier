@@ -1,10 +1,11 @@
 package com.vexsoftware.votifier.support.forwarding.proxy.client;
 
 import com.google.gson.JsonObject;
+import com.vexsoftware.votifier.net.protocol.VotifierProtocol2Decoder;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
+import io.netty.handler.codec.TooLongFrameException;
 
 import javax.crypto.Mac;
 import java.nio.charset.StandardCharsets;
@@ -36,11 +37,12 @@ public class VotifierProtocol2Encoder extends MessageToByteEncoder<VoteRequest> 
         object.addProperty("signature", computed);
 
         // JSON message is ready for encoding.
-        String finalMessage = object.toString();
+        byte[] messageBytes = object.toString().getBytes(StandardCharsets.UTF_8);
+        if (messageBytes.length > VotifierProtocol2Decoder.MAX_FRAME_BYTES - 4) {
+            throw new TooLongFrameException("Vote packet is too large");
+        }
         buf.writeShort(MAGIC);
-        buf.writeShort(finalMessage.length());
-        ByteBuf messageBytes = Unpooled.copiedBuffer(finalMessage, StandardCharsets.UTF_8);
+        buf.writeShort(messageBytes.length);
         buf.writeBytes(messageBytes);
-        messageBytes.release();
     }
 }

@@ -50,8 +50,8 @@ public class VoteInboundHandler extends SimpleChannelInboundHandler<Vote> {
         if (session.getVersion() == VotifierSession.ProtocolVersion.TWO) {
             JsonObject object = new JsonObject();
             object.addProperty("status", "error");
-            object.addProperty("cause", cause.getClass().getSimpleName());
-            object.addProperty("error", cause.getMessage());
+            object.addProperty("cause", "InvalidVote");
+            object.addProperty("error", "Vote could not be accepted");
             ctx.writeAndFlush(GsonInst.gson.toJson(object) + "\r\n").addListener(ChannelFutureListener.CLOSE);
         } else {
             ctx.close();

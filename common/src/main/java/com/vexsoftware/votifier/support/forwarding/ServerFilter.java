@@ -2,11 +2,12 @@ package com.vexsoftware.votifier.support.forwarding;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 
 public class ServerFilter {
 
     public ServerFilter(Collection<String> names, boolean whitelist) {
-        this.names = names;
+        this.names = Collections.unmodifiableSet(new HashSet<>(names));
         this.whitelist = whitelist;
     }
 

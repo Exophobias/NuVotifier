@@ -1,6 +1,30 @@
+def paperApiVersion = '26.3.build.26-alpha'
+
 dependencies {
-    compileOnly group: "org.spigotmc", name: "spigot-api", version: "1.8.8-R0.1-SNAPSHOT"
+    compileOnly "io.papermc.paper:paper-api:${paperApiVersion}"
+    compileOnly 'io.netty:netty-common:4.2.18.Final'
+    testImplementation "io.papermc.paper:paper-api:${paperApiVersion}"
     implementation project(":nuvotifier-api")
     implementation project(":nuvotifier-common")
+}
+
+tasks.register('migrateConfig', JavaExec) {
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.vexsoftware.votifier.config.BukkitConfigLoader'
+    if (providers.gradleProperty('configFile').isPresent()) {
+        args providers.gradleProperty('configFile').get()
+    }
+}
+
+tasks.register('verifyPaperApi') {
+    doLast {
+        def paperArtifacts = configurations.compileClasspath.resolvedConfiguration.resolvedArtifacts.findAll {
+            it.moduleVersion.id.group == 'io.papermc.paper' && it.name == 'paper-api' && it.type == 'jar'
+        }
+        if (paperArtifacts.size() != 1 || paperArtifacts.first().moduleVersion.id.version != paperApiVersion) {
+            throw new GradleException("Expected exactly one paper-api:jar:${paperApiVersion} on compileClasspath; found ${paperArtifacts}")
+        }
+        println "paper-api:jar:${paperArtifacts.first().moduleVersion.id.version}"
+    }
 }
 

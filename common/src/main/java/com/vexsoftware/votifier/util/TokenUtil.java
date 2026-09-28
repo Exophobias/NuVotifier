@@ -1,7 +1,7 @@
 package com.vexsoftware.votifier.util;
 
-import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.util.Base64;
 
 public class TokenUtil {
     private TokenUtil() {
@@ -11,6 +11,8 @@ public class TokenUtil {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     public static String newToken() {
-        return new BigInteger(130, RANDOM).toString(32);
+        byte[] token = new byte[32];
+        RANDOM.nextBytes(token);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(token);
     }
 }
