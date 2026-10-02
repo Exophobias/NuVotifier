@@ -26,6 +26,7 @@ import com.vexsoftware.votifier.config.BukkitConfigLoader.Prepared;
 import com.vexsoftware.votifier.config.BukkitConfigLoader.Settings;
 import com.vexsoftware.votifier.model.Vote;
 import com.vexsoftware.votifier.model.VotifierEvent;
+import com.vexsoftware.votifier.net.NettyShutdown;
 import com.vexsoftware.votifier.net.VotifierServerBootstrap;
 import com.vexsoftware.votifier.net.VotifierSession;
 import com.vexsoftware.votifier.platform.JavaUtilLogger;
@@ -246,10 +247,14 @@ public class NuVotifierBukkit extends JavaPlugin implements VoteHandler, Votifie
     public void onDisable() {
         RuntimeState previous = active;
         active = null;
-        if (previous != null && previous.bootstrap() != null) {
-            previous.bootstrap().shutdown();
+        try {
+            if (previous != null && previous.bootstrap() != null) {
+                previous.bootstrap().shutdown();
+            }
+        } finally {
+            getServer().getScheduler().cancelTasks(this);
+            NettyShutdown.awaitGlobalExecutor();
         }
-        getServer().getScheduler().cancelTasks(this);
         getLogger().info("NuVotifier disabled.");
     }
 

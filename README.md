@@ -7,10 +7,12 @@ Votifier will also support NuVotifier.
 This Patriam 2.7.3 maintenance branch packages a Paper 26.3-only JAR with
 Gradle 9.8.0 and Java 25. Build it with JDK 25 and
 `./gradlew clean verifyRelease` (tests, static analysis, exact API assertion and packaging);
-the release artifact is `universal/build/libs/nuvotifier-bukkit-2.7.3-patriam.2-all.jar`. Upstream's
+the release artifact is `universal/build/libs/nuvotifier-bukkit-2.7.3-patriam.3-all.jar`. Upstream's
 other platform sources remain in the repository but are not part of this build.
 The listener closes and its Netty threads still terminate before a reload
 rebinds the port, without Netty's default two-second shutdown quiet period.
+Final plugin disable also drains Netty's termination notifications and joins
+their executor before Paper can close the plugin classloader.
 
 This receiver requires authenticated protocol v2 using HMAC-SHA-256. Fresh
 tokens and connection challenges contain 32 cryptographically random bytes;

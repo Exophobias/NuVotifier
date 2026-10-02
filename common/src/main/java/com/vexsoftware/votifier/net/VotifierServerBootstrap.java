@@ -132,14 +132,12 @@ public class VotifierServerBootstrap {
         connections.close().awaitUninterruptibly();
         // The listener is closed above. Do not hold the Bukkit main thread for
         // Netty's default two-second quiet period on every /nvreload.
-        eventLoopGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        bossLoopGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-        try {
-            bossLoopGroup.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-            eventLoopGroup.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        var workersTerminated = eventLoopGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        var bossTerminated = bossLoopGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        // awaitTermination observes the child thread's latch before Netty completes
+        // its termination promise. Wait for the group promises instead: their
+        // listeners run on GlobalEventExecutor and still need the plugin classes.
+        workersTerminated.syncUninterruptibly();
+        bossTerminated.syncUninterruptibly();
     }
 }

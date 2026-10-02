@@ -1,6 +1,7 @@
 package com.vexsoftware.votifier;
 
 import com.vexsoftware.votifier.net.VotifierServerBootstrap;
+import com.vexsoftware.votifier.net.NettyShutdown;
 import com.vexsoftware.votifier.net.VotifierSession;
 import com.vexsoftware.votifier.model.Vote;
 import com.vexsoftware.votifier.platform.VotifierPlugin;
@@ -252,13 +253,39 @@ class NuVotifierBukkitReloadTest {
     @Test
     void disableStopsTheListenerAndCancelsScheduledCallbacks() throws Exception {
         Fixture fixture = fixture();
-        try (MockedConstruction<VotifierServerBootstrap> listeners = mockConstruction(VotifierServerBootstrap.class,
+        try (var cleanup = mockStatic(NettyShutdown.class);
+             MockedConstruction<VotifierServerBootstrap> listeners = mockConstruction(VotifierServerBootstrap.class,
                 (listener, context) -> succeed(listener))) {
             assertTrue(fixture.plugin().reload());
             fixture.plugin().onDisable();
             verify(listeners.constructed().getFirst()).shutdown();
             verify(fixture.scheduler()).cancelTasks(fixture.plugin());
+            cleanup.verify(NettyShutdown::awaitGlobalExecutor);
             assertTrue(fixture.plugin().getTokens().isEmpty());
+        }
+    }
+
+    @Test
+    void disableDrainsNotificationsWithoutAnActiveListener() throws Exception {
+        Fixture fixture = fixture();
+        try (var cleanup = mockStatic(NettyShutdown.class)) {
+            fixture.plugin().onDisable();
+            verify(fixture.scheduler()).cancelTasks(fixture.plugin());
+            cleanup.verify(NettyShutdown::awaitGlobalExecutor);
+        }
+    }
+
+    @Test
+    void disableStillDrainsNotificationsWhenListenerShutdownFails() throws Exception {
+        Fixture fixture = fixture();
+        try (var cleanup = mockStatic(NettyShutdown.class);
+             MockedConstruction<VotifierServerBootstrap> listeners = mockConstruction(VotifierServerBootstrap.class,
+                     (listener, context) -> succeed(listener))) {
+            assertTrue(fixture.plugin().reload());
+            doThrow(new IllegalStateException("shutdown failed")).when(listeners.constructed().getFirst()).shutdown();
+            assertThrows(IllegalStateException.class, fixture.plugin()::onDisable);
+            verify(fixture.scheduler()).cancelTasks(fixture.plugin());
+            cleanup.verify(NettyShutdown::awaitGlobalExecutor);
         }
     }
 }
