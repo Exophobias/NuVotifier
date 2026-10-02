@@ -1,7 +1,7 @@
 package com.vexsoftware.votifier.net;
 
 import com.google.gson.Gson;
-import com.vexsoftware.votifier.VoteHandler;
+import com.vexsoftware.votifier.model.Vote;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.epoll.Epoll;
@@ -120,7 +120,7 @@ class NettyClassLoaderShutdownTest {
 
     private static void packageRuntimeClasses(Path fixture) throws Exception {
         Set<Path> origins = new HashSet<>();
-        for (Class<?> type : List.of(VotifierServerBootstrap.class, VoteHandler.class, Gson.class,
+        for (Class<?> type : List.of(VotifierServerBootstrap.class, Vote.class, Gson.class,
                 GlobalEventExecutor.class, Channel.class, ByteBuf.class, AddressResolver.class,
                 ByteToMessageDecoder.class, ReadTimeoutHandler.class, Epoll.class, DomainSocketAddress.class)) {
             origins.add(Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()));
