@@ -226,14 +226,18 @@ public class NuVotifierBukkit extends JavaPlugin implements VoteHandler, Votifie
         scheduler = new BukkitScheduler(this);
         pluginLogger = new JavaUtilLogger(getLogger());
         errorReporter = new VoteErrorReporter(getLogger());
+        PluginCommand rootCommand = getCommand("nuvotifier");
         PluginCommand reloadCommand = getCommand("nvreload");
         PluginCommand testVoteCommand = getCommand("testvote");
-        if (reloadCommand == null || testVoteCommand == null) {
+        if (rootCommand == null || reloadCommand == null || testVoteCommand == null) {
             getLogger().severe("NuVotifier failed closed: required commands are absent from the plugin descriptor.");
             getServer().getScheduler().cancelTasks(this);
             setEnabled(false);
             return;
         }
+        com.vexsoftware.votifier.cmd.NuVotifierCommand root = new com.vexsoftware.votifier.cmd.NuVotifierCommand(this);
+        rootCommand.setExecutor(root);
+        rootCommand.setTabCompleter(root);
         reloadCommand.setExecutor(new NVReloadCmd(this));
         testVoteCommand.setExecutor(new TestVoteCmd(this));
         if (!prepareAndActivate()) {

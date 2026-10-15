@@ -364,24 +364,25 @@ public class NuVotifier extends Plugin implements VoteHandler, ProxyVotifierPlug
             }
         }
 
-        getProxy().getScheduler().runAsync(this, () -> getProxy().getPluginManager().callEvent(new VotifierEvent(vote)));
-
-        if (forwardingMethod != null) {
-            getProxy().getScheduler().runAsync(this, () -> forwardingMethod.forward(vote));
-        }
+        getProxy().getScheduler().runAsync(this, () -> {
+            VotifierEvent event = getProxy().getPluginManager().callEvent(new VotifierEvent(vote));
+            if (!event.isCancelled() && forwardingMethod != null) {
+                forwardingMethod.forward(vote);
+            }
+        });
     }
 
     @Override
     public void onError(Throwable throwable, boolean alreadyHandledVote, String remoteAddress) {
         if (debug) {
             if (alreadyHandledVote) {
-                getLogger().log(Level.SEVERE, "Vote processed, however an exception " +
+                getLogger().log(Level.WARNING, "Vote processed, however an exception " +
                         "occurred with a vote from " + remoteAddress, throwable);
             } else {
-                getLogger().log(Level.SEVERE, "Unable to process vote from " + remoteAddress, throwable);
+                getLogger().log(Level.WARNING, "Unable to process vote from " + remoteAddress, throwable);
             }
         } else if (!alreadyHandledVote) {
-            getLogger().log(Level.SEVERE, "Unable to process vote from " + remoteAddress);
+            getLogger().log(Level.WARNING, "Unable to process vote from " + remoteAddress);
         }
     }
 

@@ -391,23 +391,24 @@ public class VotifierPlugin implements VoteHandler, ProxyVotifierPlugin {
             }
         }
 
-        server.getEventManager().fireAndForget(new VotifierEvent(vote));
-        if (forwardingMethod != null) {
-            forwardingMethod.forward(vote);
-        }
+        server.getEventManager().fire(new VotifierEvent(vote)).thenAccept(v -> {
+            if (v.getResult().isAllowed() && forwardingMethod != null) {
+                forwardingMethod.forward(v.getVote());
+            }
+        });
     }
 
     @Override
     public void onError(Throwable throwable, boolean alreadyHandledVote, String remoteAddress) {
         if (debug) {
             if (alreadyHandledVote) {
-                logger.error("Vote processed, however an exception " +
+                logger.warn("Vote processed, however an exception " +
                         "occurred with a vote from " + remoteAddress, throwable);
             } else {
-                logger.error("Unable to process vote from " + remoteAddress, throwable);
+                logger.warn("Unable to process vote from " + remoteAddress, throwable);
             }
         } else if (!alreadyHandledVote) {
-            logger.error("Unable to process vote from " + remoteAddress);
+            logger.warn("Unable to process vote from " + remoteAddress);
         }
     }
 

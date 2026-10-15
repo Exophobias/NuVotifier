@@ -1,11 +1,14 @@
 name: Votifier
 main: com.vexsoftware.votifier.NuVotifierBukkit
-version: @app.version@
+version: "${internalVersion}"
 description: A plugin that gets notified when votes are made for the server on toplists.
 authors: [Ichbinjoe, blakeman8192, Kramer, tuxed]
 api-version: '26.3'
 
 commands:
+  nuvotifier:
+    description: Show permitted NuVotifier commands
+    usage: "/nuvotifier help [staff] [page]"
   nvreload:
     description: Reloads the NuVotifier configuration
     permission: nuvotifier.reload
