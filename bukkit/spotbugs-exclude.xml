@@ -14,6 +14,12 @@
         <Field name="plugin"/>
         <Bug pattern="EI_EXPOSE_REP2"/>
     </Match>
+    <Match>
+        <Class name="com.vexsoftware.votifier.cmd.NuVotifierCommand"/>
+        <Method name="&lt;init&gt;" params="com.vexsoftware.votifier.NuVotifierBukkit" returns="void"/>
+        <Field name="plugin"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
     <!-- The legacy sink retains Bukkit's owning Plugin by identity. Its final class rejects
          construction before registration, so this reference cannot expose a live vote transport. -->
     <Match>
@@ -22,11 +28,18 @@
         <Field name="p"/>
         <Bug pattern="EI_EXPOSE_REP2"/>
     </Match>
-    <!-- VotifierEvent intentionally exposes the upstream mutable Vote instance to trusted
-         synchronous Bukkit listeners. Preserve this existing public API and object identity. -->
+    <!-- Both upstream VotifierEvent constructors intentionally expose the same mutable Vote
+         to trusted Bukkit listeners. The async flag controls Event dispatch only; it does not
+         change Vote ownership. Preserve this public API and object identity in both overloads. -->
     <Match>
         <Class name="com.vexsoftware.votifier.model.VotifierEvent"/>
         <Method name="&lt;init&gt;" params="com.vexsoftware.votifier.model.Vote" returns="void"/>
+        <Field name="vote"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <Class name="com.vexsoftware.votifier.model.VotifierEvent"/>
+        <Method name="&lt;init&gt;" params="com.vexsoftware.votifier.model.Vote,boolean" returns="void"/>
         <Field name="vote"/>
         <Bug pattern="EI_EXPOSE_REP2"/>
     </Match>
