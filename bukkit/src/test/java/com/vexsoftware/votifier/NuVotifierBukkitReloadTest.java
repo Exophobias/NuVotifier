@@ -50,6 +50,7 @@ class NuVotifierBukkitReloadTest {
         doReturn(server).when(plugin).getServer();
         doReturn(logger).when(plugin).getLogger();
         doReturn(new PluginDescriptionFile("Votifier", "fixture", NuVotifierBukkit.class.getName())).when(plugin).getDescription();
+        doReturn(mock(PluginCommand.class)).when(plugin).getCommand("nuvotifier");
         doReturn(mock(PluginCommand.class)).when(plugin).getCommand("nvreload");
         doReturn(mock(PluginCommand.class)).when(plugin).getCommand("testvote");
         byte[] template;
@@ -236,7 +237,7 @@ class NuVotifierBukkitReloadTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"nvreload", "testvote"})
+    @ValueSource(strings = {"nuvotifier", "nvreload", "testvote"})
     void missingRequiredCommandFailsClosedBeforeConfigOrNetworkInitialization(String missing) throws Exception {
         Fixture fixture = fixture();
         doReturn(null).when(fixture.plugin()).getCommand(missing);
