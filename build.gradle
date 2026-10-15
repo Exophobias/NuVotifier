@@ -81,4 +81,30 @@ tasks.register('verifyRelease') {
     dependsOn subprojects.collect { "${it.path}:test" }
     dependsOn ':nuvotifier-api:spotbugsMain', ':nuvotifier-common:spotbugsMain', ':nuvotifier-bukkit:spotbugsMain'
     dependsOn ':nuvotifier-universal:shadowJar', ':nuvotifier-bukkit:verifyPaperApi'
+    doLast {
+        def artifact = project(':nuvotifier-universal').tasks.named('shadowJar').get().archiveFile.get().asFile
+        new java.util.zip.ZipFile(artifact).withCloseable { archive ->
+            def descriptor = archive.getEntry('plugin.yml')
+            if (descriptor == null) throw new GradleException('Release jar lacks plugin.yml')
+            def text = archive.getInputStream(descriptor).getText('UTF-8')
+            def field = { key ->
+                def line = text.readLines().find { it.startsWith(key + ':') }
+                line?.substring(key.length() + 1)?.trim()?.replaceAll(/^['"]|['"]$/, '')
+            }
+            if (field('name') != 'Votifier' || field('version') != project.version.toString()
+                    || field('api-version') != '26.3'
+                    || field('main') != 'com.vexsoftware.votifier.NuVotifierBukkit') {
+                throw new GradleException('Release plugin descriptor has unresolved or unexpected identity/version/target')
+            }
+            def commands = text =~ /(?ms)^commands:\s*\r?\n(.*?)(?=^permissions:|\z)/
+            if (!commands.find()) throw new GradleException('Release plugin descriptor lacks commands')
+            def commandSection = commands.group(1)
+            ['nuvotifier', 'nvreload', 'testvote'].each { command ->
+                if (!(commandSection =~ /(?m)^  ${command}:\s*$/).find()) {
+                    throw new GradleException('Release plugin descriptor lacks required command: ' + command)
+                }
+            }
+            println "release-plugin: Votifier ${field('version')} / Paper ${field('api-version')}"
+        }
+    }
 }
